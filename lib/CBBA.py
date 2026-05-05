@@ -619,8 +619,7 @@ class CBBA(object):
                                 if score > best_bid:
                                     best_bid = score
                                     best_index = j
-                                    # Select min start time as optimal
-                                    best_time = 0.0
+                                    best_time = min_start
 
                     # save best bid information
                     if best_bid > 0:
@@ -666,19 +665,11 @@ class CBBA(object):
                 # i have to have time to do task m and fly to task at j+1
                 max_start = min(task_current.end_time, time_next - task_current.duration - dt)
 
-            # Compute score
-            if self.time_window_flag:
-                # if tasks have time window
-                reward = task_current.task_value * \
-                         math.exp((-task_current.discount) * (min_start-task_current.start_time))
-            else:
-                # no time window for tasks
-                dt_current = math.sqrt((self.AgentList[idx_agent].x-task_current.x)**2 +
-                                       (self.AgentList[idx_agent].y-task_current.y)**2 +
-                                       (self.AgentList[idx_agent].z-task_current.z)**2) / \
-                             self.AgentList[idx_agent].nom_velocity
-
-                reward = task_current.task_value * math.exp((-task_current.discount) * dt_current)
+            # Compute score using path-dependent arrival time (paper eq. 11).
+            # min_start already accounts for preceding tasks in the path (via time_prev + duration + dt),
+            # so this formula is correct for both single- and multi-task assignments.
+            reward = task_current.task_value * \
+                     math.exp((-task_current.discount) * (min_start - task_current.start_time))
 
             # # Subtract fuel cost. Implement constant fuel to ensure DMG (diminishing marginal gain).
             # # This is a fake score since it double-counts fuel. Should not be used when comparing to optimal score.
